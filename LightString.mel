@@ -1,0 +1,408 @@
+global proc LightString() 
+{
+    if (`window -exists lightString_window`) deleteUI lightString_window;
+    
+    window -title "Light String Generator" -resizeToFitChildren 1 lightString_window;
+    
+    columnLayout;
+        text -label "LIGHTBULB SPECIFICATIONS\n";
+            
+        //bulb color controls (style and solid color dropdown)
+        text -label "\ncolor style:" -fn "boldLabelFont";
+        rowLayout -nc 3;
+            columnLayout;
+                $color_radio = `radioCollection`;
+                    $Csingle = `radioButton -label "single color"`;
+                    $Cmulti = `radioButton -label "multi-color"`;
+            setParent ..;
+            text -label "                "; //sanity spacing
+            $color_menu = `optionMenu -label "choose a color:"`;
+                menuItem -label "Red";
+                menuItem -label "Orange";
+                menuItem -label "Yellow";
+                menuItem -label "Green";
+                menuItem -label "Blue";
+                menuItem -label "Purple";
+                menuItem -label "Pink";
+                menuItem -label "White";
+                menuItem -label "Black";
+        setParent ..;
+        
+        //bulb orientation controls
+        text -label "\nbulb orientation:" -fn "boldLabelFont";
+        $orient_radio = `radioCollection`;
+            $Oup = `radioButton -label "upward"`;
+            $Odown = `radioButton -label "downward"`;
+            $Oalt = `radioButton -label "alternating"`;
+        
+        
+        //bulb size controls
+        text -label ""; //sanity spacking
+        rowLayout -nc 3;
+            text -label "bulb size:" -fn "boldLabelFont";
+            text -label "             "; //sanity spacing
+            $size_slider = `intSliderGrp -label "height (Maya units) " 
+                                        -field true -fieldMinValue 1 -fieldMaxValue 100
+                                        -minValue 1 -maxValue 10 -value 2`;
+        setParent ..;
+        
+        
+        //bulb intensity controls
+        text -label ""; //sanity spacking
+        rowLayout -nc 3;
+            text -label "intensity:" -fn "boldLabelFont";
+            text -label "             "; //sanity spacing
+            $intensity_slider = `intSliderGrp -label "intensity                    " 
+                                        -field true -fieldMinValue 1 -fieldMaxValue 100
+                                        -minValue 1 -maxValue 10 -value 1`;
+        setParent ..;
+        
+        
+        //blinking pattern controls
+        text -label "\n\nblinking pattern:" -fn "boldLabelFont";
+        rowLayout -nc 2;
+            columnLayout;
+                $blink_radio = `radioCollection`;
+                    $Bnone = `radioButton -label "none"`;
+                    $Balt = `radioButton -label "alternating"`;
+                    $Ball = `radioButton -label "simultaneous"`;
+            setParent ..;
+            columnLayout;
+                $blink_slider = `intSliderGrp -label "frames/blink period "
+                                        -field true -value 24
+                                        -minValue 0 -maxValue 100`;
+                rowLayout -nc 2;
+                    text -label "            "; //sanity spacing
+                    $blink_fade = `checkBox -label "fade"`;
+                setParent ..;
+            setParent ..;
+        setParent ..;
+                
+        
+        //button for light creation
+        text -label "\n\n"; //sanity spacing
+        string $command = ("LightString_query "+$color_radio+" "+$Csingle+" "+$color_menu+" "
+                                            +$orient_radio+" "+$Oup+" "+$Odown+" "
+                                            +$size_slider+" "+$intensity_slider+" "
+                                            +$blink_radio+" "+$Balt+" "+$Ball+" "+$blink_slider+" "+$blink_fade);
+        button -label "GIVE ME SOME LIGHTS!" -command $command;
+        
+
+
+        //default selection settings
+        
+        radioCollection -edit -select $Csingle $color_radio;
+        radioCollection -edit -select $Oup $orient_radio;
+        radioCollection -edit -select $Bnone $blink_radio;
+
+    showWindow;
+
+}
+
+proc LightString_query(string $color_radio, string $Csingle, string $color_menu, 
+                        string $orient_radio, string $Oup, string $Odown, 
+                        string $size_slider, string $intensity_slider,
+                        string $blink_radio, string $Balt, string $Ball, string $blink_slider, string $blink_fade) {
+    //query radio button selection for color
+    string $color_select = `radioCollection -query -sl $color_radio`;
+    string $fpn_color_select = `radioButton -q -fpn $color_select`;
+    //set color(s)
+    float $r;
+    float $g;
+    float $b;
+    int $black = 0;
+    vector $rgbs[];
+    if ($fpn_color_select == $Csingle){
+        int $color = `optionMenu -q -sl $color_menu`;
+        switch($color) {
+            case 1:    //red
+                $r = 1;
+                $g = 0;
+                $b = 0;
+                break;
+            case 2:    //orange
+                $r = 1;
+                $g = .4;
+                $b = 0;
+                break;
+            case 3:    //yellow
+                $r = 1;
+                $g = 1;
+                $b = 0;
+                break;
+            case 4:    //green
+                $r = 0;
+                $g = .8;
+                $b = 0;
+                break;
+            case 5:    //blue
+                $r = 0;
+                $g = .3;
+                $b = 1;
+                break;
+            case 6:    //purple
+                $r = .6;
+                $g = 0;
+                $b = 1;
+                break;
+            case 7:    //pink
+                $r = 1;
+                $g = 0;
+                $b = .5;
+                break;
+            case 8:    //white
+                $r = 1;
+                $g = 1;
+                $b = 1;
+                break;
+            case 9: //black
+                $black = 1;
+                $r = 0;
+                $g = 0;
+                $b = 0;
+                break;
+        }
+    }else { //$Cmulti must have been set
+        $rgbs[0] = << 1,  1,  0>>;    //yellow
+        $rgbs[1] = << 0, .3,  1>>;    //blue
+        $rgbs[2] = << 1,  0,  0>>;    //red
+        $rgbs[3] = <<.6,  0,  1>>;    //purple
+        $rgbs[4] = << 1, .4,  0>>;    //orange
+        $rgbs[5] = << 0, .8,  0>>;    //green
+        $rgbs[6] = << 1,  0, .5>>;    //pink
+    }
+    
+    //query radio button selection for orientation
+    string $orient_select = `radioCollection -query -sl $orient_radio`;
+    string $fpn_orient_select = `radioButton -q -fpn $orient_select`;
+    //set orientation(s) in the form of rotation angles
+    int $rot_angle[];
+    if ($fpn_orient_select == $Oup) {
+        $rot_angle[0] = 0; //make lights point up 
+        $rot_angle[1] = 0;
+    } else if ($fpn_orient_select == $Odown) {
+        $rot_angle[0] = 180; //make lights point down
+        $rot_angle[1] = 180;
+    } else { //$Oalt must have been set
+        //make them point in alternating directions
+        $rot_angle[0] = 0;
+        $rot_angle[1] = 180;
+    }
+    
+    //query the size slider and translate that into a scale for the bulb
+    float $size = `intSliderGrp -q -value $size_slider`;
+    float $scale = $size/10;
+    
+    //query intensity slider
+    float $intensity = `intSliderGrp -q -value $intensity_slider`;
+    
+    //query radio button selection for orientation
+    string $blink_select = `radioCollection -query -sl $blink_radio`;
+    string $fpn_blink_select = `radioButton -q -fpn $blink_select`;
+    int $blink;
+    if ($fpn_blink_select == $Balt) { //alternating blink keys
+        $blink = 1;
+    } else if ($fpn_blink_select == $Ball) { //flash simultaneously
+        $blink = 2;
+    } else { //assume $Bnone was set
+        $blink = 0;
+    }
+    int $blink_freq = `intSliderGrp -q -value $blink_slider`;
+    int $fade = `checkBox -q -v $blink_fade`;
+    
+
+    //make the string of lights!
+    light_em($scale, $intensity, $r, $g, $b, $rgbs, $rot_angle, $black, $blink, $blink_freq, $fade);
+}
+
+proc light_em(float $scale, float $intensity, float $r, float $g, float $b, vector $rgbs[], int $rot_angle[], int $black, int $blink, int $freq, int $fade) {
+    string $selection[] = `ls -sl`;
+    //check to make sure the selection is a nurbsCurve
+    if (size($selection) == 0){
+        confirmDialog -title "Error"
+            -message "Please select a single nurbs curve for this operation"
+            -button "OK"
+            -defaultButton "OK";
+        return;
+    } 
+    string $objType[] = `listRelatives -s $selection[0]`;
+    if (size($selection) == 0 || !`objectType -i "nurbsCurve" $objType[0]`){
+        confirmDialog -title "Error"
+                    -message "Please select a single nurbs curve for this operation"
+                    -button "OK"
+                    -defaultButton "OK";
+        return;  //don't continue if selection is not nurbsCurve
+    }
+    
+    string $curve = $selection[0]; //name of curve to put lights on
+    string $light_group = "light_group_"+$curve; //name of light group
+    
+    //make sure curve doesn't already have a light group on it
+    if (`objExists $light_group`) {
+        confirmDialog -title "Error"
+                    -message "This curve already has lights on it."
+                    -button "OK"
+                    -defaultButton "OK";
+        return;
+    }
+
+    vector $curveEPs[] = {};
+    int $i = 0; //iterator
+    vector $new_point; //result of pointPosition
+    while (1) {
+        $ep = $curve + ".ep[" + $i +"]";
+        $new_point = `pointPosition -w $ep`;
+        if ($i > 0 && $new_point == $curveEPs[$i-1]) break; //exit while loop; all points collected
+        $curveEPs[$i] = $new_point; //otherwise, add point to EP vector
+        $i = $i + 1; 
+    }
+    
+    vector $tmp;
+    float $x, $y, $z;
+    float $red, $green, $blue;
+    int $index, $rindex;
+    int $rangle;
+    group -n $light_group -em; //create empty group named "light_group"
+    string $prog_bar = progress_bar(size($curveEPs)-1);
+    for ($i=0; $i<size($curveEPs); $i++) {
+        //update progress bar
+        progressBar -edit -step 1 $prog_bar;
+        
+        //position
+        $tmp = $curveEPs[$i];
+        $x = $tmp.x;
+        $y = $tmp.y;
+        $z = $tmp.z;
+        //color
+        if (size($rgbs) != 0) {
+            $index = $i%(size($rgbs));
+            $tmp = $rgbs[$index];
+            $red = $tmp.x;
+            $green = $tmp.y;
+            $blue = $tmp.z;
+        } else {
+            $red = $r;
+            $green = $g;
+            $blue = $b;
+        }
+        //orientation
+        $rindex = $i%(size($rot_angle));
+        $rangle = $rot_angle[$rindex];
+
+        make_bulb($i, $x, $y, $z, $curve, $scale, $intensity, $red, $green, $blue, $rangle, $black, $blink, $freq, $fade);
+        string $name = $curve+"_light" + $i;
+        parent $name $light_group;
+    }
+
+    deleteUI progress_window; //close progress bar window
+    select $curve;
+}
+
+proc make_bulb(int $i, float $x, float $y, float $z, string $curve, float $scale, float $intensity, float $r, float $g, float $b, int $rot_angle, int $black, int $blink, int $freq, int $fade) { 
+    //names of bulb components
+    string $lbase = $curve+"light_base"+$i;
+    string $bshaft = $curve+"bulb_shaft"+$i;
+    string $bpoint = $curve+"bulb_point"+$i;
+    string $btip = $curve+"_bulb_tip"+$i;
+    string $plight = $curve+"_point_light"+$i;
+    string $light_group = $curve+"_light"+$i;
+    
+    //BULB GEOMETRY
+    //electrical base
+    polyCylinder -ax 0 1 0 -h 4 -r 1.1 -n $lbase;
+    move -a 0 2 0 $lbase;
+    
+    //bulb shaft
+    polyCylinder -ax 0 1 0 -h 4 -r .9 -n $bshaft;
+    move -a 0 6 0 $bshaft;
+    string $top_face = $bshaft+".f[21]";
+    select -r $top_face; //select top face of cylinder
+    doDelete; //delete that face
+    
+    //bulb point
+    polyCone -ax 0 1 0 -h 2 -r .9 -n $bpoint;
+    move -a 0 9 0 $bpoint;
+    string $cone_base = $bpoint+".f[0]";
+    select -r $cone_base; //select base face of cone
+    doDelete; //delete that face
+    
+    //bulb tip
+    polySphere -ax 0 1 0 -r .25 -n $btip;
+    move -a 0 9.75 0 $btip;
+    
+    //the light itself
+    if ($black) pointLight -pos 0 5 0 -d 2 -i $intensity -rgb .5 .5 .5 -n $plight; //gray light for black bulb
+    else pointLight -pos 0 5 0 -d 2 -i $intensity -rgb $r $g $b -n $plight; //colored light otherwise
+    //set blink keyframes for light
+    if ($blink == 1) { //alternating blinking
+        set_light_keys($plight, $i%2, $freq, $fade, $intensity);
+    } else if ($blink == 2) { //simulatneous blinking
+        set_light_keys($plight, 1, $freq, $fade, $intensity);
+    } //if $blink == 0, don't set any keys
+    
+    
+    //GROUP BULB COMPONENTS
+    group -n $light_group $lbase $bshaft $bpoint $btip $plight;
+    string $bulb_scale_pivot = $light_group+".scalePivot";
+    string $brp = $light_group+".rotatePivot";
+    move -r 0 -5 0 $bulb_scale_pivot $brp; //move pivot so light stays "on" string
+    move -a $x $y $z $light_group;    //move the bulb to the correct ep on curve
+    scale -a $scale $scale $scale $light_group;    //scale appropriately
+    rotate -a 0 0 $rot_angle $light_group;   //rotate for up/down orientation
+    
+    //ADD SHADERS
+    string $base_shader = $curve+"_base_shader"+$i;
+    shadingNode -asShader lambert -n $base_shader;
+    select -r $lbase;
+    hyperShade -assign $base_shader;
+    string $base_shader_color = $base_shader+".color";
+    setAttr $base_shader_color -type double3 0 .02 0; //make shader dark green; numbers are RGB, 0 to 1 range
+    
+    string $bulb_shader = $curve+"_bulb_shader"+$i;
+    shadingNode -asShader phong -n $bulb_shader;
+    select -r $bshaft $bpoint $btip;
+    hyperShade -assign $bulb_shader;
+    string $bulb_shader_color = $bulb_shader+".color";
+    string $bulb_shader_transparency = $bulb_shader+".transparency";
+    setAttr $bulb_shader_color -type double3 $r $g $b;
+    setAttr $bulb_shader_transparency -type double3 .6 .6 .6;
+    
+    select -cl; //clear selection
+}
+
+proc set_light_keys(string $light, int $start_on, int $freq, int $fade, float $intensity){
+    currentTime(1); //set current time to frame 1
+    string $light_rels[] = `listRelatives -c $light`; //children of light
+    string $light_in = $light_rels[0] + ".in"; //lightShape for light
+    setKeyframe -v $start_on $light_in; //initial keyframe; starting intensity for light
+    
+    int $on = $start_on;
+    int $fade_prev;
+    float $length = `playbackOptions -q -animationEndTime`;
+    while (`currentTime -q` < $length){
+        $on = (($on + 1)%2)*$intensity;
+        currentTime(`currentTime -q` + $freq); //add $freq number of frames to current frame
+        if (!$fade) {
+            nextOrPreviousFrame("previous"); //previous frame
+            $fade_prev = (($on + 1)%2)*$intensity;
+            setKeyframe -v $fade_prev $light_in;
+            nextOrPreviousFrame("next"); //next frame
+        }
+        setKeyframe -v $on $light_in;
+    }
+}
+
+proc string progress_bar(int $size) {
+    //make window
+    if (`window -exists progress_window`) deleteUI progress_window;
+    window -title "making lights..." -width 300 progress_window;
+    columnLayout -rs 4;
+        text -label "crunching numbers for your lights!";
+        string $prog_bar = `progressBar -maxValue $size -width 250`;
+    showWindow;
+    
+    //initialize window
+    progressBar -edit -beginProgress $prog_bar;
+    
+    return $prog_bar;
+}
